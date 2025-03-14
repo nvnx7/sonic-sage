@@ -7,7 +7,6 @@ use crate::state::metadata::Metadata;
 // const USDC_MINT: Pubkey = pubkey!("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 
 #[derive(Accounts)]
-// #[instruction(mint_addr: String)]
 pub struct Setup<'info> {
     #[account(
         init,
@@ -28,7 +27,6 @@ pub struct Setup<'info> {
     )]
     pub token_account: Account<'info, TokenAccount>,
 
-    // #[account(address = Pubkey::from_str(&mint_addr).unwrap())]
     #[account(mut)]
     pub mint: Account<'info, Mint>,
 

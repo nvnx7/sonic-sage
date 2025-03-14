@@ -29,7 +29,27 @@ mod sonic_sage {
         create::create_market(ctx, min_price, max_price, resolve_at, subsidy_amount)
     }
 
+    pub fn buy_outcome(
+        ctx: Context<BuySellOutcome>,
+        outcome: u8,
+        amount: u64
+    ) -> Result<()> { 
+        buy_sell::buy_outcome(ctx, outcome, amount)
+    }
+
+    pub fn sell_outcome(
+        ctx: Context<BuySellOutcome>,
+        outcome: u8,
+        amount: u64
+    ) -> Result<()> { 
+        buy_sell::sell_outcome(ctx, outcome, amount)
+    }
+    
     // pub fn resolve_market(ctx: Context<ResolveMarket>) -> Result<()> {
     //     resolve::resolve_market(ctx)
     // }
+
+    pub fn redeem_outcome(ctx: Context<RedeemOutcome>) -> Result<()> {
+        redeem::redeem_outcome(ctx)
+    }
 }

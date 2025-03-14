@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::TokenAccount;
 
 #[account]
+#[derive(InitSpace)]
 pub struct Metadata {
     pub market_counter: u64,
 }

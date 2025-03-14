@@ -57,7 +57,7 @@ export const setupProgram = async (args: {pg: Program<SonicSage>, signer: Keypai
         signer,
         mintAuthority: signer.publicKey,
         tokenAccount: signerTokenAccount,
-        amount: 100 * LAMPORTS_PER_SOL
+        amount: 10000 * LAMPORTS_PER_SOL
     });
 
     console.log("Setting up...");

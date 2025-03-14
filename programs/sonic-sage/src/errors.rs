@@ -1,10 +1,11 @@
 use anchor_lang::prelude::*;
 
 #[error_code]
-pub enum MyError {
-    #[msg("Invalid resolve time")]
+pub enum CustomError {
     InvalidResolveTime,
-
-    #[msg("Market already resolved")]
-    MarketAlreadyResolved
+    InvalidPriceRange,
+    InvalidOutcome,
+    InsufficientOutcomeAvailable,
+    MarketAlreadyResolved,
+    MarketNotResolvedYet,
 }
