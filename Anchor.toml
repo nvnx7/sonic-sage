@@ -12,7 +12,8 @@ sonic_sage = "7JoThMj3epYFva6TBDQVDGDrn92Uncwj8vB11SJQUUPn"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+# cluster = "Localnet"
+cluster = "https://api.testnet.sonic.game"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

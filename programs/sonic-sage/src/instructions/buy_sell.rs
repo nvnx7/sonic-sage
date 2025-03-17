@@ -10,8 +10,11 @@ use crate::errors::*;
 use crate::state::market::Market;
 use crate::state::outcome::OutcomeAccount;
 
+/// Liquidity parameter for the LMSR (Logarithmic Market Scoring Rule) pricing model
+/// Controls market price sensitivity - higher values create less price movement per trade
 const LIQUIDITY_CONSTANT: u64 = 50;
 
+// Context for buying and selling outcome tokens
 #[derive(Accounts)]
 #[instruction(outcome:u8, amount: u64)]
 pub struct BuySellOutcome<'info> {
@@ -52,6 +55,20 @@ pub struct BuySellOutcome<'info> {
     pub system_program: Program<'info, System>,
 }
 
+/// Buy outcome shares for a given market
+///
+/// Uses LMSR (Logarithmic Market Scoring Rule) to calculate token price
+/// and executes token transfers between user and program accounts
+///
+/// # Arguments
+///
+/// * `ctx` - BuySellOutcome context containing required accounts
+/// * `outcome_idx` - Index of outcome to buy (0 or 1)
+/// * `num_shares` - Number of outcome shares to purchase
+///
+/// # Errors
+///
+/// Returns error if market is already resolved, outcome index is invalid
 pub fn buy_outcome(
     ctx: Context<BuySellOutcome>,
     outcome_idx: u8,
@@ -102,6 +119,20 @@ pub fn buy_outcome(
     Ok(())
 }
 
+/// Sell outcome shares back to the market
+///
+/// Uses LMSR (Logarithmic Market Scoring Rule) to calculate sale price
+/// and executes token transfers between program and user accounts
+///
+/// # Arguments
+///
+/// * `ctx` - BuySellOutcome context containing required accounts
+/// * `outcome_idx` - Index of outcome to sell (0 or 1)
+/// * `num_shares` - Number of outcome share to sell
+///
+/// # Errors
+///
+/// Returns error if market is already resolved, outcome index is invalid,
 pub fn sell_outcome(
     ctx: Context<BuySellOutcome>,
     outcome_idx: u8,
@@ -152,6 +183,19 @@ pub fn sell_outcome(
     Ok(())
 }
 
+/// Calculate the cost function for the market using LMSR
+///
+/// Implements C(q) = b * ln(exp(q_0/b) + exp(q_1/b))
+/// where q_0 and q_1 are the quantities of outcome tokens
+/// and b is the liquidity constant
+///
+/// # Arguments
+///
+/// * `ctx` - BuySellOutcome context containing market state
+///
+/// # Returns
+///
+/// The cost value according to the LMSR formula
 fn calculate_cost(ctx: &Context<BuySellOutcome>) -> f64 {
     let b = LIQUIDITY_CONSTANT;
     let exp_no = (ctx.accounts.market.num_outcome_1).checked_div(b).unwrap_or_default();
@@ -166,6 +210,18 @@ fn calculate_cost(ctx: &Context<BuySellOutcome>) -> f64 {
     (b as f64) * (max_exp as f64 + diff.ln())
 }
 
+/// Calculate market prices for each outcome based on LMSR
+///
+/// Calculates p_i = exp(q_i/b) / sum_j(exp(q_j/b))
+/// where p_i is the price of outcome i
+///
+/// # Arguments
+///
+/// * `ctx` - BuySellOutcome context containing market state
+///
+/// # Returns
+///
+/// Tuple of (price_0, price_1) representing probabilities of each outcome
 fn get_prices(ctx: &Context<BuySellOutcome>) -> (f64, f64) {
     let b = LIQUIDITY_CONSTANT as f64;
 

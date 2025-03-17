@@ -10,15 +10,18 @@ import {
 import { Program } from "@coral-xyz/anchor";
 import {
   Account,
+  createMint,
   getAccount,
   getMint,
   getOrCreateAssociatedTokenAccount,
   mintTo,
+  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { SonicSage } from "../target/types/sonic_sage";
 import { setupProgram } from "./helpers";
 import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
+import { Connection } from "@solana/web3.js";
 
 const ONE_DAY = 1000 * 60 * 60 * 24;
 
@@ -41,8 +44,17 @@ const logMarket = (market) => {
 };
 
 describe.only("redeem outcome shares", () => {
-  const provider = AnchorProvider.local();
-  setProvider(provider);
+  //   const provider = AnchorProvider.local();
+  const provider1 = AnchorProvider.env();
+  const wallet = provider1.wallet;
+  const conn = new Connection("https://api.testnet.sonic.game");
+  const provider = new AnchorProvider(conn, wallet);
+
+  //   provider.connection._rpcEndpoint = "https://api.testnet.sonic.game";
+  //   const provider = new AnchorProvider(
+  //     new Connection("https://api.testnet.sonic.game")
+  //   );
+  //   setProvider(provider);
   const connection = provider.connection;
   const pg = workspace.SonicSage as Program<SonicSage>;
   const programId = pg.programId;
@@ -75,7 +87,108 @@ describe.only("redeem outcome shares", () => {
     // );
   });
 
-  it("redeem successfully", async () => {
+  it.only("sonic setup", async () => {
+    const [metadataPda] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("metadata")],
+      programId
+    );
+    const [programTokenAccountPda] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("token")],
+      programId
+    );
+    const mint = new web3.PublicKey(
+      "88sV7y1ryDCiutfCUgqWvmkD9tUCBzdCLM8QqNhwgcAY"
+    );
+    const tokenProgramInf = await conn.getAccountInfo(TOKEN_PROGRAM_ID);
+    console.log(
+      "tokenProgramInf:",
+      tokenProgramInf.owner.toBase58(),
+      tokenProgramInf.data.length
+    );
+
+    const mint1 = await getMint(connection, mint);
+    console.log("mintAcc:", mint1.address.toBase58(), mint1.decimals);
+
+    const accounts = {
+      metadata: metadataPda,
+      tokenAccount: programTokenAccountPda,
+      mint: mint1.address,
+      signer: signer.publicKey,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: web3.SystemProgram.programId,
+    };
+
+    // Object.keys(accounts).map((k) => {
+    //   console.log(k, accounts[k].toBase58());
+    // });
+
+    // console.log("provider:", pg.provider);
+
+    const txHash = await pg.methods
+      .setupMetadata()
+      .accounts(accounts)
+      .signers([signer])
+      .rpc()
+      .catch((err) => {
+        console.log(err);
+      });
+    console.log(`setup:txHash: ${txHash}`);
+  });
+
+  it("sonic token", async () => {
+    console.log("provider:", provider);
+
+    // const x1 = await createMint(
+    //   connection,
+    //   signer,
+    //   signer.publicKey,
+    //   signer.publicKey,
+    //   9
+    // );
+    // console.log("mint:", x1.toBase58());
+
+    const mint = new web3.PublicKey(
+      "88sV7y1ryDCiutfCUgqWvmkD9tUCBzdCLM8QqNhwgcAY"
+    );
+    const ss = new web3.PublicKey(
+      "FVeerek7gKGqhSSqWFbWuSkPBeuZgCL7Gix66DDu4v4Z"
+    );
+    let tokenAccount = await getOrCreateAssociatedTokenAccount(
+      connection,
+      signer,
+      mint,
+      //   signer.publicKey
+      ss
+    );
+    console.log(
+      "tokenAccount:",
+      tokenAccount.address.toBase58(),
+      tokenAccount.amount.toString()
+    );
+
+    await mintTo(
+      connection,
+      signer,
+      mint,
+      tokenAccount.address,
+      signer,
+      20000 * LAMPORTS_PER_SOL
+    );
+    tokenAccount = await getOrCreateAssociatedTokenAccount(
+      connection,
+      signer,
+      mint,
+      //   signer.publicKey
+      ss
+    );
+    console.log(
+      "tokenAccount:",
+      tokenAccount.address.toBase58(),
+      tokenAccount.amount.toString()
+    );
+  });
+
+  it.skip("redeem successfully", async () => {
     const price = 200.5;
     const resolveFrom = new BN(Date.now() + ONE_DAY);
     const resolveTo = new BN(Date.now() + ONE_DAY * 2);

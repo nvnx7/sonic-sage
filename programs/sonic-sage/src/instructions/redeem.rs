@@ -10,6 +10,8 @@ use crate::errors::*;
 use crate::state::market::Market;
 use crate::state::outcome::OutcomeAccount;
 
+
+/// Accounts required for redeeming outcome tokens after market resolution
 #[derive(Accounts)]
 pub struct RedeemOutcome<'info> {
     #[account(mut)]
@@ -49,6 +51,19 @@ pub struct RedeemOutcome<'info> {
     pub system_program: Program<'info, System>,
 }
 
+/// Redeems winning outcome tokens after market resolution
+///
+/// Calculates the user's share of the total market pool based on their
+/// proportion of winning outcome shares and transfers the corresponding
+/// amount of tokens to their account
+///
+/// # Arguments
+///
+/// * `ctx` - RedeemOutcome context containing required accounts
+///
+/// # Errors
+///
+/// Returns error if market is not yet resolved or token transfer fails
 pub fn redeem_outcome(ctx: Context<RedeemOutcome>) -> Result<()> {
     require!(ctx.accounts.market.is_resolved, CustomError::MarketNotResolvedYet);
 

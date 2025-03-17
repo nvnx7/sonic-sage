@@ -10,6 +10,7 @@ use crate::errors::*;
 use crate::state::market::Market;
 use crate::state::metadata::Metadata;
 
+/// Context for creating a new market
 #[derive(Accounts)]
 #[instruction(price: u64, price_feed_id: String, resolve_from: u64, resolve_to: u64, subsidy_amount: u64)]
 pub struct CreateMarket<'info> {
@@ -50,6 +51,20 @@ pub struct CreateMarket<'info> {
     pub system_program: Program<'info, System>,
 }
 
+/// Creates a new prediction market with initial liquidity subsidy
+///
+/// # Arguments
+///
+/// * `ctx` - CreateMarket context containing required accounts
+/// * `price` - Predicted price for the market
+/// * `price_feed_id` - Identifier for pyth price feed used for resolution
+/// * `resolve_from` - Unix timestamp when the market can begin to be resolved
+/// * `resolve_to` - Unix timestamp deadline by which market must be resolved
+/// * `subsidy_amount` - Initial liquidity subsidy amount in whole tokens
+///
+/// # Errors
+///
+/// Returns error if the resolve window is invalid, resolve time is in the past.
 pub fn create_market(
     ctx: Context<CreateMarket>,
     price: f64,

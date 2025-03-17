@@ -5,6 +5,7 @@ use pyth_solana_receiver_sdk::price_update::{PriceUpdateV2, get_feed_id_from_hex
 
 use crate::state::market::Market;
 
+/// Context accounts for resolving a prediction market using Pyth price feeds
 #[derive(Accounts)]
 pub struct ResolveMarket<'info> {
     #[account(mut)]
@@ -16,6 +17,20 @@ pub struct ResolveMarket<'info> {
     pub price_update: Account<'info, PriceUpdateV2>,
 }
 
+
+/// Resolves a market by comparing the target price to the actual price from Pyth oracle
+///
+/// Uses Pyth price feed to determine the winning outcome:
+/// - If target price >= actual price: Outcome 0 wins
+/// - If target price < actual price: Outcome 1 wins
+///
+/// # Arguments
+///
+/// * `ctx` - ResolveMarket context containing required accounts
+///
+/// # Errors
+///
+/// Returns error if price feed ID is invalid or price data is too old
 pub fn resolve_market(ctx: Context<ResolveMarket>) -> Result<()> {
     let price_update = &mut ctx.accounts.price_update;
     let maximum_age: u64 = 60;
