@@ -9,7 +9,7 @@ pub use instructions::*;
 pub use state::*;
 
 // Program's public key
-declare_id!("8F17NFTtu82uWQuXWYDE81vAdfFf6UKdtZNjGVtrakMF");
+declare_id!("7JoThMj3epYFva6TBDQVDGDrn92Uncwj8vB11SJQUUPn");
 
 #[program]
 mod sonic_sage {
@@ -21,12 +21,13 @@ mod sonic_sage {
 
     pub fn create_market(
         ctx: Context<CreateMarket>,
-        min_price: u64,
-        max_price: u64,
-        resolve_at: u64,
-        subsidy_amount: u64,
+        price: f64,
+        price_feed_id: String,
+        resolve_from: u64,
+        resolve_to: u64,
+        subsidy_amount: u64
     ) -> Result<()> {
-        create::create_market(ctx, min_price, max_price, resolve_at, subsidy_amount)
+        create::create_market(ctx, price, price_feed_id, resolve_from, resolve_to, subsidy_amount)
     }
 
     pub fn buy_outcome(
@@ -45,9 +46,9 @@ mod sonic_sage {
         buy_sell::sell_outcome(ctx, outcome, amount)
     }
     
-    // pub fn resolve_market(ctx: Context<ResolveMarket>) -> Result<()> {
-    //     resolve::resolve_market(ctx)
-    // }
+    pub fn resolve_market(ctx: Context<ResolveMarket>) -> Result<()> {
+        resolve::resolve_market(ctx)
+    }
 
     pub fn redeem_outcome(ctx: Context<RedeemOutcome>) -> Result<()> {
         redeem::redeem_outcome(ctx)

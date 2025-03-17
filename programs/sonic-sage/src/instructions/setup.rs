@@ -1,7 +1,6 @@
-use std::str::FromStr;
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::{pubkey, pubkey::Pubkey};
-use anchor_spl::token::{Mint, TokenAccount, InitializeAccount, Token};
+use anchor_lang::solana_program::pubkey::Pubkey;
+use anchor_spl::token::{Mint, TokenAccount, Token};
 use crate::state::metadata::Metadata;
 
 // const USDC_MINT: Pubkey = pubkey!("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
@@ -39,7 +38,6 @@ pub struct Setup<'info> {
 }
 
 pub fn setup_metadata(ctx: Context<Setup>) -> Result<()> {
-    msg!("Mint address: {:?}", ctx.accounts.mint.key());
     ctx.accounts.metadata.market_counter = 0;
     Ok(())
 }

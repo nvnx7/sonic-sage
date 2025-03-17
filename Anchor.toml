@@ -1,11 +1,12 @@
 [toolchain]
+anchor_version = "0.30.1"
 
 [features]
 resolution = true
 skip-lint = false
 
 [programs.localnet]
-sonic_sage = "8F17NFTtu82uWQuXWYDE81vAdfFf6UKdtZNjGVtrakMF"
+sonic_sage = "7JoThMj3epYFva6TBDQVDGDrn92Uncwj8vB11SJQUUPn"
 
 [registry]
 url = "https://api.apr.dev"

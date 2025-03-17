@@ -55,12 +55,12 @@ pub fn redeem_outcome(ctx: Context<RedeemOutcome>) -> Result<()> {
     // Calculate the winning outcome amount
     let winning_outcome = ctx.accounts.market.outcome.unwrap();
     let (num_outcomes, total_winning_outcome) = if winning_outcome == 0 { 
-        (ctx.accounts.outcome_account.amount_0, ctx.accounts.market.num_outcome_0)
+        (ctx.accounts.outcome_account.amount_0, ctx.accounts.market.num_outcome_0_held)
     } else { 
-        (ctx.accounts.outcome_account.amount_1, ctx.accounts.market.num_outcome_1)
+        (ctx.accounts.outcome_account.amount_1, ctx.accounts.market.num_outcome_1_held)
     };
-    let subsidy_token_balance = 0u64;
-    let win_amount = (num_outcomes * subsidy_token_balance) / total_winning_outcome;
+    let total_token_balance = ctx.accounts.market.current_balance;
+    let win_amount = (num_outcomes * total_token_balance) / total_winning_outcome;
 
     // Transfer the winning amount to the signer
     let signer_seeds: &[&[&[u8]]] = &[&[b"token", &[ctx.bumps.program_token_account]]];
@@ -71,6 +71,8 @@ pub fn redeem_outcome(ctx: Context<RedeemOutcome>) -> Result<()> {
         authority: ctx.accounts.program_token_account.to_account_info(),
     };
     transfer(CpiContext::new(cpi_program, cpi_accounts).with_signer(signer_seeds), win_amount)?;
+
+    ctx.accounts.market.current_balance -= win_amount;
 
     Ok(())
 }

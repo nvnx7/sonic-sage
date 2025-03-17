@@ -10,6 +10,8 @@ use crate::errors::*;
 use crate::state::market::Market;
 use crate::state::outcome::OutcomeAccount;
 
+const LIQUIDITY_CONSTANT: u64 = 50;
+
 #[derive(Accounts)]
 #[instruction(outcome:u8, amount: u64)]
 pub struct BuySellOutcome<'info> {
@@ -52,19 +54,24 @@ pub struct BuySellOutcome<'info> {
 
 pub fn buy_outcome(
     ctx: Context<BuySellOutcome>,
-    outcome: u8,
-    amount: u64
+    outcome_idx: u8,
+    num_shares: u64
 ) -> Result<()> {
     require!(!ctx.accounts.market.is_resolved, CustomError::MarketAlreadyResolved);
-    require!(outcome == 0 || outcome == 1, CustomError::InvalidOutcome);
+    require!(outcome_idx == 0 || outcome_idx == 1, CustomError::InvalidOutcome);
 
-    // Calculate the total price of outcome
-    let price_per_outcome = if outcome == 0 {
-        ctx.accounts.market.price_outcome_0
+    let const_before = calculate_cost(&ctx);
+
+    if outcome_idx == 0 {
+        ctx.accounts.market.num_outcome_0 += num_shares;
     } else {
-        ctx.accounts.market.price_outcome_1
-    };
-    let total_price_outcome = (price_per_outcome * 10u64.pow(ctx.accounts.subsidy_mint.decimals as u32) as f64) as u64 * amount;
+        ctx.accounts.market.num_outcome_1 += num_shares;
+    }
+
+    let cost_after = calculate_cost(&ctx);
+
+    let cost_to_buy = cost_after - const_before;
+    let cost_in_tokens = (cost_to_buy * 10u64.pow(ctx.accounts.subsidy_mint.decimals as u32) as f64) as u64;
     
     // Transfer the amount of subsidy tokens to the program
     let cpi_program = ctx.accounts.token_program.to_account_info();
@@ -73,42 +80,48 @@ pub fn buy_outcome(
         to: ctx.accounts.program_token_account.to_account_info(),
         authority: ctx.accounts.signer.to_account_info(),
     };
-    transfer(CpiContext::new(cpi_program, cpi_accounts), total_price_outcome)?;
+    transfer(CpiContext::new(cpi_program, cpi_accounts), cost_in_tokens)?;
 
-    // Deduct available outcome available to buy and add to user's outcome account
-    if outcome == 0 {
-        require!(ctx.accounts.market.num_outcome_0 > amount, CustomError::InsufficientOutcomeAvailable);
-        ctx.accounts.market.num_outcome_0 -= amount;
-        ctx.accounts.outcome_account.amount_0 += amount;
-    } else {
-        require!(ctx.accounts.market.num_outcome_1 > amount, CustomError::InsufficientOutcomeAvailable);
-        ctx.accounts.market.num_outcome_1 -= amount;
-        ctx.accounts.outcome_account.amount_1 += amount;
-    }
-
-    // Adjust prices according to LMSR formula
-    let (price_0, price_1) = adjust_prices(&ctx);
+    // Store adjusted prices according to LMSR formula
+    let (price_0, price_1) = get_prices(&ctx);
     ctx.accounts.market.price_outcome_0 = price_0;
     ctx.accounts.market.price_outcome_1 = price_1;
+
+    // Update the balance of the market
+    ctx.accounts.market.current_balance += cost_in_tokens;
+
+    // Update user outcomes shares
+    if outcome_idx == 0 {
+        ctx.accounts.outcome_account.amount_0 += num_shares;
+        ctx.accounts.market.num_outcome_0_held += num_shares;
+    } else {
+        ctx.accounts.outcome_account.amount_1 += num_shares;
+        ctx.accounts.market.num_outcome_1_held += num_shares;
+    }
 
     Ok(())
 }
 
 pub fn sell_outcome(
     ctx: Context<BuySellOutcome>,
-    outcome: u8,
-    amount: u64
+    outcome_idx: u8,
+    num_shares: u64
 ) -> Result<()> {
     require!(!ctx.accounts.market.is_resolved, CustomError::MarketAlreadyResolved);
-    require!(outcome == 0 || outcome == 1, CustomError::InvalidOutcome);
+    require!(outcome_idx == 0 || outcome_idx == 1, CustomError::InvalidOutcome);
     
-    // Calculate the total price of outcome
-    let price_per_outcome = if outcome == 0 {
-        ctx.accounts.market.price_outcome_0
+    let const_before = calculate_cost(&ctx);
+
+    if outcome_idx == 0 {
+        ctx.accounts.market.num_outcome_0 -= num_shares;
     } else {
-        ctx.accounts.market.price_outcome_1
-    };
-    let total_price_outcome = (price_per_outcome * 10u64.pow(ctx.accounts.subsidy_mint.decimals as u32) as f64) as u64 * amount;
+        ctx.accounts.market.num_outcome_1 -= num_shares;
+    }
+
+    let cost_after = calculate_cost(&ctx);
+
+    let cost_to_buy = cost_after - const_before;
+    let cost_in_tokens = (cost_to_buy * 10u64.pow(ctx.accounts.subsidy_mint.decimals as u32) as f64) as u64;
 
     let signer_seeds: &[&[&[u8]]] = &[&[b"token", &[ctx.bumps.program_token_account]]];
     let cpi_program = ctx.accounts.token_program.to_account_info();
@@ -117,36 +130,50 @@ pub fn sell_outcome(
         to: ctx.accounts.signer_token_account.to_account_info(),
         authority: ctx.accounts.program_token_account.to_account_info(),
     };
-    transfer(CpiContext::new(cpi_program, cpi_accounts).with_signer(signer_seeds), total_price_outcome)?;
+    transfer(CpiContext::new(cpi_program, cpi_accounts).with_signer(signer_seeds), cost_in_tokens)?;
 
-    // Add available outcome available to buy and deduct to user's outcome account
-    if outcome == 0 {
-        require!(ctx.accounts.market.num_outcome_0 > amount, CustomError::InsufficientOutcomeAvailable);
-        ctx.accounts.market.num_outcome_0 += amount;
-        ctx.accounts.outcome_account.amount_0 -= amount;
-    } else {
-        require!(ctx.accounts.market.num_outcome_1 > amount, CustomError::InsufficientOutcomeAvailable);
-        ctx.accounts.market.num_outcome_1 += amount;
-        ctx.accounts.outcome_account.amount_1 -= amount;
-    }
-
-    // Adjust prices according to LMSR formula
-    let (price_0, price_1) = adjust_prices(&ctx);
+    // Store adjusted prices according to LMSR formula
+    let (price_0, price_1) = get_prices(&ctx);
     ctx.accounts.market.price_outcome_0 = price_0;
     ctx.accounts.market.price_outcome_1 = price_1;
+
+    // Update the balance of the market
+    ctx.accounts.market.current_balance -= cost_in_tokens;
+
+    // Update user outcomes shares
+    if outcome_idx == 0 {
+        ctx.accounts.outcome_account.amount_0 -= num_shares;
+        ctx.accounts.market.num_outcome_0_held -= num_shares;
+    } else {
+        ctx.accounts.outcome_account.amount_1 -= num_shares;
+        ctx.accounts.market.num_outcome_1_held -= num_shares;
+    }
 
     Ok(())
 }
 
-fn adjust_prices(ctx: &Context<BuySellOutcome>) -> (f64, f64) {
-    let b = 10_f64;
+fn calculate_cost(ctx: &Context<BuySellOutcome>) -> f64 {
+    let b = LIQUIDITY_CONSTANT;
+    let exp_no = (ctx.accounts.market.num_outcome_1).checked_div(b).unwrap_or_default();
+    let exp_yes = (ctx.accounts.market.num_outcome_0).checked_div(b).unwrap_or_default();
 
-    let e_q0_div_b = (ctx.accounts.market.num_outcome_0 as f64 / b).exp();
-    let e_q1_div_b = (ctx.accounts.market.num_outcome_1 as f64 / b).exp();
+    // Approximate the natural log sum of exponentials
+    // C(q) = b * ln(exp(q_yes/b) + exp(q_no/b))
+    // For safety, we use the max exponential and add the difference
+    let max_exp = exp_yes.max(exp_no);
+    let diff = ((exp_yes - max_exp) as f64).exp() + ((exp_no - max_exp) as f64).exp();
+    
+    (b as f64) * (max_exp as f64 + diff.ln())
+}
 
-    let denom = e_q0_div_b + e_q1_div_b;
+fn get_prices(ctx: &Context<BuySellOutcome>) -> (f64, f64) {
+    let b = LIQUIDITY_CONSTANT as f64;
 
-    let price_0 = e_q0_div_b / denom;
+    let exp_0 = (ctx.accounts.market.num_outcome_0 as f64 / b).exp();
+    let exp_1 = (ctx.accounts.market.num_outcome_1 as f64 / b).exp();
+    let sum = exp_0 + exp_1;
+
+    let price_0 = exp_0 / sum;
     let price_1 = 1f64 - price_0;
 
     (price_0, price_1)
