@@ -59,10 +59,6 @@ describe.skip("setup", () => {
       amount: 100 * LAMPORTS_PER_SOL,
     });
 
-    console.log("mintAddress", mint.toBase58());
-    console.log("signerTokenAccount", signerTokenAccount.address.toBase58());
-    console.log("tokenPda", tokenPda.toBase58());
-
     const accounts = {
       metadata: metadataPda,
       tokenAccount: tokenPda,
@@ -84,13 +80,6 @@ describe.skip("setup", () => {
 
     const metadata = await pg.account.metadata.fetch(metadataPda);
     const token = await getAccount(connection, tokenPda);
-    console.log("metadata", metadata.marketCounter.toNumber());
-    console.log(
-      "token",
-      token.address.toBase58(),
-      token.amount.toString(),
-      token.owner.toBase58()
-    );
 
     expect(metadata.marketCounter.toNumber()).to.equal(0);
     expect(token.amount).to.equal(BigInt(0));
