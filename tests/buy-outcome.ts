@@ -76,7 +76,6 @@ describe.skip("buy outcome", () => {
       .accounts(createMarketAccounts)
       .signers([signer])
       .rpc();
-    //   .catch((err) => { console.log(err); });
 
     // Fetch updated accounts
     metadata = await pg.account.metadata.fetch(metadataPda);
@@ -93,36 +92,6 @@ describe.skip("buy outcome", () => {
       programTokenAccount.amount.toString(),
       programTokenAccount.mint.toBase58()
     );
-
-    const totalSubsidyProvided = programTokenAccount.amount.toString();
-
-    console.log("market.price:", market.price.toString());
-    console.log("market.priceFeedId:", market.priceFeedId);
-    console.log("market.resolveFrom:", market.resolveFrom.toString());
-    console.log("market.resolveTo:", market.resolveTo.toString());
-    console.log("market.subsidyAmount:", market.subsidyAmount.toString());
-    console.log("market.currentBalance:", market.currentBalance.toString());
-    console.log("market.isResolved:", market.isResolved);
-    console.log("market.outcome:", market.outcome);
-    console.log("market.subsidyAmount:", market.subsidyAmount.toString());
-    console.log("market.numOutcome0:", market.numOutcome0.toString());
-    console.log("market.numOutcome1:", market.numOutcome1.toString());
-    console.log("market.priceOutcome0:", market.priceOutcome0.toString());
-    console.log("market.priceOutcome1:", market.priceOutcome1.toString());
-    console.log("totalSubsidyProvided:", totalSubsidyProvided);
-
-    // expect(metadata.marketCounter.toString()).to.equal('1');
-    // expect(market.minPrice.toString()).to.equal(minPrice.toString());
-    // expect(market.maxPrice.toString()).to.equal(maxPrice.toString());
-    // expect(market.resolveAt.toString()).to.equal(resolveAt.toString());
-    // expect(market.subsidyAmount.toString()).to.equal(subsidyAmount.toString());
-    // expect(market.numOutcome0.toString()).to.equal(subsidyAmount.toString());
-    // expect(market.numOutcome1.toString()).to.equal(subsidyAmount.toString());
-    // expect(market.priceOutcome0.toString()).to.equal('0.5');
-    // expect(market.priceOutcome1.toString()).to.equal('0.5');
-    // expect(market.isResolved).to.equal(false);
-    // expect(market.outcome).to.equal(null);
-    // expect(totalSubsidyProvided).to.equal(subsidyAmount.mul(new BN(10 ** mintAccountDecimals)).toString());
 
     const numBuyOutcome0 = subsidyAmount.div(new BN(10));
     const [outcomeAccountPda] = await web3.PublicKey.findProgramAddressSync(
@@ -159,27 +128,14 @@ describe.skip("buy outcome", () => {
     );
     market = await pg.account.market.fetch(marketPda);
     programTokenAccount = await getAccount(connection, programTokenAccountPda);
-    console.log("programTokenAccount:", programTokenAccount.amount.toString());
 
-    console.log("========AFTER BUY OUTCOME========");
-    console.log("market.price:", market.price.toString());
-    console.log("market.priceFeedId:", market.priceFeedId);
-    console.log("market.resolveFrom:", market.resolveFrom.toString());
-    console.log("market.resolveTo:", market.resolveTo.toString());
-    console.log("market.subsidyAmount:", market.subsidyAmount.toString());
-    console.log("market.currentBalance:", market.currentBalance.toString());
-    console.log("market.isResolved:", market.isResolved);
-    console.log("market.outcome:", market.outcome);
-    console.log("market.subsidyAmount:", market.subsidyAmount.toString());
-    console.log("market.numOutcome0:", market.numOutcome0.toString());
-    console.log("market.numOutcome1:", market.numOutcome1.toString());
-    console.log("market.priceOutcome0:", market.priceOutcome0.toString());
-    console.log("market.priceOutcome1:", market.priceOutcome1.toString());
-    console.log("totalSubsidyProvided:", totalSubsidyProvided);
-
-    expect(outcomeAccount.amount0.toString()).to.equal(
-      numBuyOutcome0.toString()
+    expect(market.isResolved).to.equal(false);
+    expect(market.outcome).to.equal(null);
+    expect(market.numOutcome0.toString()).to.equal(
+      subsidyAmount.add(numBuyOutcome0).toString()
     );
-    expect(outcomeAccount.amount1.toString()).to.equal("0");
+    expect(market.numOutcome1.toString()).to.equal(subsidyAmount.toString());
+    expect(market.priceOutcome0).to.be.greaterThan(0.5);
+    expect(market.priceOutcome1).to.be.lessThan(0.5);
   });
 });

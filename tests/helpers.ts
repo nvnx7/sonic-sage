@@ -113,13 +113,6 @@ export const setupProgram = async (args: {
     programTokenAccountPda
   );
 
-  //   console.log("signerTokenAccount", signerTokenAccount?.address.toBase58());
-  //   console.log("programTokenAccountPda", programTokenAccountPda.toBase58());
-  //   console.log("programTokenAccount", programTokenAccount?.address.toBase58());
-  //   console.log("mint", mint.toBase58());
-  //   console.log("signerTokenAcc.mint", signerTokenAccount?.mint.toBase58());
-  //   console.log("programTokenAcc.mint", programTokenAccount?.mint.toBase58());
-
   return {
     mint,
     signerTokenAccount,
@@ -127,4 +120,22 @@ export const setupProgram = async (args: {
     metadataPda,
     programTokenAccountPda,
   };
+};
+
+export const logMarket = (market) => {
+  console.log("market.price:", market.price.toString());
+  console.log("market.priceFeedId:", market.priceFeedId);
+  console.log("market.resolveFrom:", market.resolveFrom.toString());
+  console.log("market.resolveTo:", market.resolveTo.toString());
+  console.log("market.subsidyAmount:", market.subsidyAmount.toString());
+  console.log("market.currentBalance:", market.currentBalance.toString());
+  console.log("market.isResolved:", market.isResolved);
+  console.log("market.outcome:", market.outcome);
+  console.log("market.subsidyAmount:", market.subsidyAmount.toString());
+  console.log("market.numOutcome0:", market.numOutcome0.toString());
+  console.log("market.numOutcome1:", market.numOutcome1.toString());
+  console.log("market.numOutcome0Held:", market.numOutcome0Held.toString());
+  console.log("market.numOutcome1Held:", market.numOutcome1Held.toString());
+  console.log("market.priceOutcome0:", market.priceOutcome0.toString());
+  console.log("market.priceOutcome1:", market.priceOutcome1.toString());
 };

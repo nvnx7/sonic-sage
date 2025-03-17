@@ -1,12 +1,23 @@
 import { expect } from "chai";
-import { AnchorProvider, setProvider, workspace, BN, web3 } from "@coral-xyz/anchor";
+import {
+  AnchorProvider,
+  setProvider,
+  workspace,
+  BN,
+  web3,
+} from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { getOrCreateAssociatedTokenAccount, Account, TOKEN_PROGRAM_ID, getAccount } from "@solana/spl-token";
+import {
+  getOrCreateAssociatedTokenAccount,
+  Account,
+  TOKEN_PROGRAM_ID,
+  getAccount,
+} from "@solana/spl-token";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { SonicSage } from "../target/types/sonic_sage";
 import { createToken, mintToken } from "./helpers";
 
-describe.skip("setup",  () => {
+describe.skip("setup", () => {
   const provider = AnchorProvider.local();
   setProvider(provider);
   const connection = provider.connection;
@@ -23,19 +34,19 @@ describe.skip("setup",  () => {
   );
   let mint: PublicKey;
   let signerTokenAccount: Account;
-  
-  before(async () => { 
-      mint = await createToken({
-        connection,
-        owner: signerKp,
-      });
-    
-      signerTokenAccount = await getOrCreateAssociatedTokenAccount(
-        connection,
-        signerKp,
-        mint,
-        signerKp.publicKey
-      );
+
+  before(async () => {
+    mint = await createToken({
+      connection,
+      owner: signerKp,
+    });
+
+    signerTokenAccount = await getOrCreateAssociatedTokenAccount(
+      connection,
+      signerKp,
+      mint,
+      signerKp.publicKey
+    );
   });
 
   it("setup", async () => {
@@ -45,7 +56,7 @@ describe.skip("setup",  () => {
       signer: signerKp,
       mintAuthority: signerKp.publicKey,
       tokenAccount: signerTokenAccount,
-      amount: 100 * LAMPORTS_PER_SOL
+      amount: 100 * LAMPORTS_PER_SOL,
     });
 
     console.log("mintAddress", mint.toBase58());
@@ -61,20 +72,25 @@ describe.skip("setup",  () => {
       systemProgram: web3.SystemProgram.programId,
     };
 
-    // const txHash = await pg.methods
-    // .setupMetadata(mint.toBase58())
-    // .accounts(accounts)
-    // .signers([signerKp])
-    // .rpc()
-    // .catch((err) => {
-    //   console.log(err);
-    // });
-    // console.log(`txHash: ${txHash}`);
+    const txHash = await pg.methods
+      .setupMetadata()
+      .accounts(accounts)
+      .signers([signerKp])
+      .rpc()
+      .catch((err) => {
+        console.log(err);
+      });
+    console.log(`txHash: ${txHash}`);
 
     const metadata = await pg.account.metadata.fetch(metadataPda);
     const token = await getAccount(connection, tokenPda);
     console.log("metadata", metadata.marketCounter.toNumber());
-    console.log("token", token.address.toBase58(), token.amount.toString(), token.owner.toBase58());
+    console.log(
+      "token",
+      token.address.toBase58(),
+      token.amount.toString(),
+      token.owner.toBase58()
+    );
 
     expect(metadata.marketCounter.toNumber()).to.equal(0);
     expect(token.amount).to.equal(BigInt(0));
