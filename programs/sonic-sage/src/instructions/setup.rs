@@ -3,8 +3,6 @@ use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_spl::token::{Mint, TokenAccount, Token};
 use crate::state::metadata::Metadata;
 
-// const USDC_MINT: Pubkey = pubkey!("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
-
 #[derive(Accounts)]
 pub struct Setup<'info> {
     #[account(
